@@ -1,0 +1,12 @@
+# Backend
+backend/data/
+backend/.env
+backend/server
+backend/telegram-epaper-display
+
+# Firmware secrets
+firmware/config.py
+
+# Editor / OS
+*.swp
+.DS_Store
