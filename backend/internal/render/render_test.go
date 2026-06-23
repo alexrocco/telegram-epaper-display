@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/store"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/store"
 )
 
 func sampleView() View {

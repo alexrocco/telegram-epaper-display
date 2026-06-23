@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/render"
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/store"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/render"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/store"
 )
 
 func newTestFrame(t *testing.T) *Frame {

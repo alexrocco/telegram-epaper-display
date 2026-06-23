@@ -1,4 +1,4 @@
-module github.com/alexxrocco/telegram-epaper-display/backend
+module github.com/alexrocco/telegram-epaper-display/backend
 
 go 1.26.4
 

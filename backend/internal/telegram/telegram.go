@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/store"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/store"
 )
 
 // Ingester long-polls Telegram and feeds matching channel posts into the store.

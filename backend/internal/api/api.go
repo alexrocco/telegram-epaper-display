@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/render"
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/store"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/render"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/store"
 )
 
 // Frame builds and caches the current display frame from the store. It only

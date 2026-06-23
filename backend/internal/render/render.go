@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/store"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/store"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gobold"

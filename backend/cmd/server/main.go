@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/api"
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/config"
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/store"
-	"github.com/alexxrocco/telegram-epaper-display/backend/internal/telegram"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/api"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/config"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/store"
+	"github.com/alexrocco/telegram-epaper-display/backend/internal/telegram"
 )
 
 func main() {
