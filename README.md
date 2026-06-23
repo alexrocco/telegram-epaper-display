@@ -1,13 +1,14 @@
 # telegram-epaper-display
 
 Show the messages of a **Telegram channel** on a **Waveshare Pico-ePaper-3.7**
-(480×280, 4 grayscale levels) driven by a **Raspberry Pi Pico W**.
+(480×280) driven by a **Raspberry Pi Pico W**.
 
 Two components:
 
 - **`backend/`** — a Go service that runs on your server. It reads the channel
-  via the Telegram Bot API, renders a ready-to-display 4-gray bitmap, and serves
-  it over HTTP.
+  via the Telegram Bot API, renders a ready-to-display 1-bit bitmap, and serves
+  it over HTTP. (1-bit / black-and-white is used instead of the panel's 4-gray
+  mode because the grayscale waveform looks soft on e-ink; 1-bit text is crisp.)
 - **`firmware/`** — MicroPython for the Pico W. It just fetches the bitmap over
   WiFi and pushes it to the e-paper.
 
@@ -18,7 +19,7 @@ tiny and the display looks good.
 Telegram channel
    │  Bot API (getUpdates long polling — no public HTTPS needed)
    ▼
-Go backend (server) ──HTTP /frame.bin (33600 bytes, ETag)──▶ Pico W + e-paper
+Go backend (server) ──HTTP /frame.bin (16800 bytes, ETag)──▶ Pico W + e-paper
 ```
 
 ## Repository layout
@@ -29,14 +30,14 @@ backend/
   internal/config/          env config
   internal/telegram/        Bot API ingestion (getUpdates)
   internal/store/           recent messages + poll offset (JSON persistence)
-  internal/render/          text → 480×280 image → 280×480 GS2_HMSB buffer
+  internal/render/          text → 480×280 image → 280×480 1-bit MONO_HLSB buffer
   internal/api/             HTTP: /frame.bin, /frame.png, /status
   .env.example
 firmware/
   main.py                   WiFi + polling loop + display
   config.example.py         WiFi/backend settings (copy to config.py)
   lib/wifi.py               WiFi helper
-  lib/epd3in7.py            Waveshare Pico-ePaper-3.7 driver (4-gray)
+  lib/epd3in7.py            Waveshare Pico-ePaper-3.7 driver
 ```
 
 ## 1. Telegram bot setup
@@ -67,7 +68,7 @@ show. Endpoints:
 
 | Endpoint     | Purpose                                                      |
 |--------------|-------------------------------------------------------------|
-| `/frame.bin` | Raw 33600-byte 4-gray buffer. Honors `If-None-Match` (304). |
+| `/frame.bin` | Raw 16800-byte 1-bit buffer. Honors `If-None-Match` (304).  |
 | `/frame.png` | PNG preview (4 shades), for debugging in a browser.         |
 | `/status`    | JSON: channel, message count, current ETag, last update.    |
 
@@ -129,7 +130,7 @@ needed.
 
 ## Notes / future work
 
-- Emoji are not rendered in v1 (4-gray e-paper + monochrome font); they show as
+- Emoji are not rendered in v1 (1-bit e-paper + monochrome font); they show as
   missing glyphs. A monochrome emoji font could be added later.
 - v1 uses Bot API long polling (no public HTTPS required). A webhook would need
   a public TLS endpoint.
