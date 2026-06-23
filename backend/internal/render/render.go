@@ -56,8 +56,8 @@ var loadedFaces = mustLoadFaces()
 func mustLoadFaces() faces {
 	return faces{
 		title: mustFace(gobold.TTF, 18),
-		meta:  mustFace(goregular.TTF, 12),
-		body:  mustFace(goregular.TTF, 16),
+		meta:  mustFace(gobold.TTF, 15),
+		body:  mustFace(goregular.TTF, 20),
 	}
 }
 
@@ -93,8 +93,8 @@ func Render(v View) *image.Gray {
 	const (
 		padX   = 8
 		gap    = 6
-		lineH  = 19 // body line height in px
-		metaH  = 15
+		lineH  = 25 // body line height in px
+		metaH  = 20
 		sepGap = 4
 	)
 	maxW := CanvasW - 2*padX
@@ -109,16 +109,16 @@ func Render(v View) *image.Gray {
 			meta += " · " + m.Author
 		}
 		y += metaH
-		drawString(img, loadedFaces.meta, darkGray, padX, y-3, meta)
+		drawString(img, loadedFaces.meta, darkGray, padX, y-4, meta)
 
-		// Body: wrapped text.
-		lines := wrap(loadedFaces.body, m.Text, maxW)
+		// Body: wrapped text, shown in uppercase.
+		lines := wrap(loadedFaces.body, strings.ToUpper(m.Text), maxW)
 		for _, ln := range lines {
 			if y+lineH > CanvasH {
 				break
 			}
 			y += lineH
-			drawString(img, loadedFaces.body, black, padX, y-4, ln)
+			drawString(img, loadedFaces.body, black, padX, y-5, ln)
 		}
 
 		y += gap
