@@ -7,6 +7,7 @@
 package render
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -43,6 +44,11 @@ type View struct {
 	UpdatedAt    time.Time
 	// Empty is set when there are no messages yet, to show a placeholder.
 	Empty bool
+	// Battery state reported by the Pico's UPS-B (INA219). BatteryValid gates
+	// whether the indicator is drawn; Charging draws a small bolt glyph.
+	BatteryValid   bool
+	BatteryPercent int
+	Charging       bool
 }
 
 type faces struct {
@@ -143,8 +149,45 @@ func drawHeader(img *image.Gray, v View) int {
 
 	stamp := v.UpdatedAt.Format("15:04")
 	w := measure(loadedFaces.meta, stamp)
-	drawString(img, loadedFaces.meta, white, CanvasW-8-w, 20, stamp)
+	clockX := CanvasW - 8 - w
+	drawString(img, loadedFaces.meta, white, clockX, 20, stamp)
+
+	if v.BatteryValid {
+		batt := fmt.Sprintf("%d%%", v.BatteryPercent)
+		bw := measure(loadedFaces.meta, batt)
+		x := clockX - 14 - bw
+		drawString(img, loadedFaces.meta, white, x, 20, batt)
+		if v.Charging {
+			drawBolt(img, x-boltW-3, 6, white)
+		}
+	}
 	return h
+}
+
+// boltMask is a small lightning-bolt glyph (drawn white on the black header)
+// shown when the UPS reports it is charging. Each '#' is one pixel.
+var boltMask = []string{
+	"   ##",
+	"  ##",
+	" ##",
+	"#####",
+	"  ##",
+	" ##",
+	"##",
+}
+
+const boltW = 5
+
+// drawBolt stamps boltMask with its top-left at (x0, y0).
+func drawBolt(img *image.Gray, x0, y0 int, src image.Image) {
+	c := src.At(0, 0)
+	for dy, row := range boltMask {
+		for dx, ch := range row {
+			if ch == '#' {
+				img.Set(x0+dx, y0+dy, c)
+			}
+		}
+	}
 }
 
 func drawCentered(img *image.Gray, face font.Face, s string, topY int) {

@@ -100,6 +100,7 @@ go build -o telegram-epaper-display ./cmd/server
    mpremote connect auto fs mkdir lib
    mpremote connect auto fs cp lib/wifi.py :lib/wifi.py
    mpremote connect auto fs cp lib/epd3in7.py :lib/epd3in7.py
+   mpremote connect auto fs cp lib/ina219.py :lib/ina219.py   # only if UPS-B fitted
    ```
 
    Set `BACKEND_URL` to your server's `/frame.bin`, e.g.
@@ -108,6 +109,20 @@ go build -o telegram-epaper-display ./cmd/server
 4. Reset the Pico. It connects to WiFi, fetches the frame, and displays it; then
    it polls every `POLL_INTERVAL_S` seconds, redrawing only when the content
    changes (the backend returns `304` otherwise).
+
+## Battery status (optional Pico-UPS-B)
+
+If a [Waveshare Pico-UPS-B](https://www.waveshare.com/wiki/Pico-UPS-B) is fitted,
+set `USE_UPS = True` in `config.py`. Its INA219 monitor (I2C1: `SDA=GP6`,
+`SCL=GP7` — no clash with the e-paper's SPI pins) is read each poll, and the
+firmware appends the battery voltage and current to the frame request
+(`/frame.bin?v=<volts>&i=<mA>`). The **backend** turns voltage into a percentage
+and renders it in the header (e.g. `85%`, with a ⚡ bolt while charging).
+
+The percentage is quantized to 10% steps and folded into the frame ETag, so the
+e-ink only redraws on a meaningful change — small voltage flicker still returns
+`304`. `/status` also reports `battery_percent` and `charging`. A missing or
+unresponsive UPS simply disables the indicator; the display keeps working.
 
 ### Display orientation
 

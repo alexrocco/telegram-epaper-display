@@ -7,6 +7,10 @@ backend/telegram-epaper-display
 # Firmware secrets
 firmware/config.py
 
+# Python bytecode (from local syntax checks)
+__pycache__/
+*.pyc
+
 # Editor / OS
 *.swp
 .DS_Store

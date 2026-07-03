@@ -13,6 +13,12 @@ BACKEND_URL = "http://192.168.1.10:8080/frame.bin"
 # How often to poll the backend, in seconds.
 POLL_INTERVAL_S = 30
 
+# Set True if a Waveshare Pico-UPS-B is fitted. The firmware reads its INA219
+# (I2C1: SDA=GP6, SCL=GP7) and reports battery volts/current to the backend,
+# which renders the battery indicator. Safe to leave True if absent — a missing
+# UPS just disables the indicator.
+USE_UPS = True
+
 # Use machine.lightsleep between polls (lower power) instead of time.sleep.
 # Note: lightsleep keeps RAM, so the cached ETag survives between cycles.
 USE_LIGHTSLEEP = True

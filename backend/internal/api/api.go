@@ -11,7 +11,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/png"
+	"math"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -33,7 +36,17 @@ type Frame struct {
 	buf       []byte
 	etag      string
 	updatedAt time.Time
+
+	// Last battery state reported by the Pico on /frame.bin, reused for the
+	// /frame.png preview and /status.
+	battValid bool
+	battPct   int
+	charging  bool
 }
+
+// chargingThreshold_mA is the INA219 current above which the UPS is considered
+// charging. A small positive floor avoids flapping on measurement noise near 0.
+const chargingThreshold_mA = 20.0
 
 // NewFrame creates a Frame. titleFn supplies the channel title learned at
 // runtime (may return ""), with fallbackTitle used when it does.
@@ -52,12 +65,51 @@ func (f *Frame) buildView() render.View {
 	if title == "" {
 		title = f.fallbackTitle
 	}
+	f.mu.Lock()
+	battValid, battPct, charging := f.battValid, f.battPct, f.charging
+	f.mu.Unlock()
 	return render.View{
-		ChannelTitle: title,
-		Messages:     msgs,
-		UpdatedAt:    time.Now(),
-		Empty:        len(msgs) == 0,
+		ChannelTitle:   title,
+		Messages:       msgs,
+		UpdatedAt:      time.Now(),
+		Empty:          len(msgs) == 0,
+		BatteryValid:   battValid,
+		BatteryPercent: battPct,
+		Charging:       charging,
 	}
+}
+
+// setBattery records the latest battery state reported by the Pico. The
+// percentage is quantized to 10% steps so the frame signature (and thus the
+// display) only changes on a meaningful move, keeping e-ink redraws rare.
+func (f *Frame) setBattery(q url.Values) {
+	vs := q.Get("v")
+	if vs == "" {
+		return // no battery data on this request; keep last known
+	}
+	volts, err := strconv.ParseFloat(vs, 64)
+	if err != nil {
+		return
+	}
+	pct := (volts - 3.0) / 1.2 * 100
+	if pct < 0 {
+		pct = 0
+	}
+	if pct > 100 {
+		pct = 100
+	}
+	quantized := int(math.Round(pct/10) * 10)
+
+	charging := false
+	if is := q.Get("i"); is != "" {
+		if amps, err := strconv.ParseFloat(is, 64); err == nil {
+			charging = amps > chargingThreshold_mA
+		}
+	}
+
+	f.mu.Lock()
+	f.battValid, f.battPct, f.charging = true, quantized, charging
+	f.mu.Unlock()
 }
 
 // current returns the cached buffer/etag, re-rendering if content changed.
@@ -84,6 +136,7 @@ func signature(v render.View) string {
 	for _, m := range v.Messages {
 		fmt.Fprintf(h, "%d\x1f%d\x1f%s\x1f%s\x00", m.ID, m.Date.Unix(), m.Author, m.Text)
 	}
+	fmt.Fprintf(h, "batt\x1f%v\x1f%d\x1f%v\x00", v.BatteryValid, v.BatteryPercent, v.Charging)
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -98,6 +151,7 @@ func (f *Frame) Handler() http.Handler {
 }
 
 func (f *Frame) handleBin(w http.ResponseWriter, r *http.Request) {
+	f.setBattery(r.URL.Query())
 	buf, etag, _ := f.current()
 	w.Header().Set("ETag", etag)
 	w.Header().Set("Cache-Control", "no-cache")
@@ -131,6 +185,12 @@ func (f *Frame) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if len(msgs) > 0 {
 		st["last_message_at"] = msgs[0].Date.Format(time.RFC3339)
 	}
+	f.mu.Lock()
+	if f.battValid {
+		st["battery_percent"] = f.battPct
+		st["charging"] = f.charging
+	}
+	f.mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")

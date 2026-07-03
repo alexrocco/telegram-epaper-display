@@ -21,6 +21,36 @@ import epd3in7
 EXPECTED_BYTES = 280 * 480 // 8
 
 
+def init_ups():
+    """Return an INA219 for the UPS-B, or None if disabled/absent.
+
+    The backend renders the battery indicator, so the firmware only has to read
+    voltage/current and pass them along. A missing or unwired UPS must never
+    break the display loop, so any error just disables battery reporting.
+    """
+    if not getattr(config, "USE_UPS", False):
+        return None
+    try:
+        import ina219
+        ups = ina219.INA219()
+        ups.bus_voltage()  # probe: raises if the chip isn't responding
+        return ups
+    except Exception as e:  # noqa: BLE001 - UPS is optional
+        print("UPS not available:", e)
+        return None
+
+
+def battery_query(ups):
+    """Return '?v=<volts>&i=<mA>' for the frame request, or '' if unavailable."""
+    if ups is None:
+        return ""
+    try:
+        return "?v=%.3f&i=%.1f" % (ups.bus_voltage(), ups.current_mA())
+    except Exception as e:  # noqa: BLE001 - keep displaying even if a read fails
+        print("UPS read error:", e)
+        return ""
+
+
 def parse_url(url):
     """Split an http://host[:port]/path URL into (host, port, path)."""
     if not url.startswith("http://"):
@@ -116,6 +146,7 @@ def main():
     epd = epd3in7.EPD_3in7()       # constructor runs 4Gray init + clear
     epd.EPD_3IN7_1Gray_init()      # switch to the sharp 1-bit full-refresh mode
     epd.EPD_3IN7_1Gray_Clear()
+    ups = init_ups()               # optional Pico-UPS-B; None if absent
     wlan = None
     etag = None
 
@@ -123,7 +154,8 @@ def main():
         try:
             gc.collect()
             wlan = wifi.ensure(wlan, config.WIFI_SSID, config.WIFI_PASSWORD)
-            status, new_etag, n = fetch_frame(config.BACKEND_URL, etag, epd.buffer_1Gray)
+            url = config.BACKEND_URL + battery_query(ups)
+            status, new_etag, n = fetch_frame(url, etag, epd.buffer_1Gray)
             if status == 200:
                 if n == EXPECTED_BYTES:
                     epd.EPD_3IN7_1Gray_Display(epd.buffer_1Gray)
