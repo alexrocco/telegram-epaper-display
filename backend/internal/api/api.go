@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/png"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -38,10 +39,13 @@ type Frame struct {
 	updatedAt time.Time
 
 	// Last battery state reported by the Pico on /frame.bin, reused for the
-	// /frame.png preview and /status.
-	battValid bool
-	battPct   int
-	charging  bool
+	// /frame.png preview and /status. battVolts/battCurrent_mA are the raw
+	// INA219 readings, surfaced on /status for calibration/diagnosis.
+	battValid     bool
+	battPct       int
+	charging      bool
+	battVolts     float64
+	battCurrentmA float64
 }
 
 // chargingThreshold_mA is the INA219 current above which the UPS is considered
@@ -101,15 +105,20 @@ func (f *Frame) setBattery(q url.Values) {
 	quantized := int(math.Round(pct/10) * 10)
 
 	charging := false
+	currentmA := 0.0
 	if is := q.Get("i"); is != "" {
 		if amps, err := strconv.ParseFloat(is, 64); err == nil {
+			currentmA = amps
 			charging = amps > chargingThreshold_mA
 		}
 	}
 
 	f.mu.Lock()
 	f.battValid, f.battPct, f.charging = true, quantized, charging
+	f.battVolts, f.battCurrentmA = volts, currentmA
 	f.mu.Unlock()
+
+	log.Printf("battery report: %.3f V, %.1f mA -> %d%% charging=%v", volts, currentmA, quantized, charging)
 }
 
 // current returns the cached buffer/etag, re-rendering if content changed.
@@ -189,6 +198,8 @@ func (f *Frame) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if f.battValid {
 		st["battery_percent"] = f.battPct
 		st["charging"] = f.charging
+		st["battery_volts"] = f.battVolts
+		st["battery_current_ma"] = f.battCurrentmA
 	}
 	f.mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")

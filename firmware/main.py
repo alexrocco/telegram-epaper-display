@@ -45,7 +45,10 @@ def battery_query(ups):
     if ups is None:
         return ""
     try:
-        return "?v=%.3f&i=%.1f" % (ups.bus_voltage(), ups.current_mA())
+        volts = ups.bus_voltage()
+        current = ups.current_mA()
+        print("UPS: %.3f V, %.1f mA" % (volts, current))
+        return "?v=%.3f&i=%.1f" % (volts, current)
     except Exception as e:  # noqa: BLE001 - keep displaying even if a read fails
         print("UPS read error:", e)
         return ""
