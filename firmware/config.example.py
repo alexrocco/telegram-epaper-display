@@ -11,7 +11,7 @@ WIFI_PASSWORD = "your-wifi-password"
 BACKEND_URL = "http://192.168.1.10:8080/frame.bin"
 
 # How often to poll the backend, in seconds.
-POLL_INTERVAL_S = 30
+POLL_INTERVAL_S = 600
 
 # Set True if a Waveshare Pico-UPS-B is fitted. The firmware reads its INA219
 # (I2C1: SDA=GP6, SCL=GP7) and reports battery volts/current to the backend,
